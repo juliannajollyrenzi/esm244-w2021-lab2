@@ -8,7 +8,27 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-library(tidyselect)
+library(tidyverse)
+library(janitor) # simple tools for examining/cleaning dirty data
+library(palmerpenguins)
+library(here)
+
+# for PCA
+library(ggfortify)
+
+# for ggplot customation
+library(readxl) # read in Excels
+library(gghighlight) # color things by group
+library(lubridate) # dates
+library(plotly) # interactive graphs
+
+# to make compound figures
+library(patchwork)
+```
+
+
+```{r}
 
 ```
+
 

@@ -26,9 +26,109 @@ library(plotly) # interactive graphs
 library(patchwork)
 ```
 
+## Part 1: PCA with penguins
 
 ```{r}
+# use view(penguins) to see whole dataset
+  # see lots have NAs
+  # also need to scale
+penguin_pca <- penguins %>% 
+  select(body_mass_g, ends_with("_mm")) %>%  # need contiguous variables only; want all mm functions
+  drop_na() %>% # any row with any NA (listwise deletion if there are any NAs)--add variables in drop_na() if you want to drop rows with NAs in particular columns 
+  scale() %>% # scales variables
+  prcomp() # run PCA--now it's not a df it's a list with information on the PCA
+
+penguin_pca$rotation
+  # loadings for each variable on each PC
+  # axis rotation that is a linear combination of the original variables
+
+# create a biplot (could do it manually in ggplot, but this is easier)
+# autoplot guesses the plot you need (needs ggfortify)--"appropriate to a particular data type" i.e. assumes you want a PCA biplot
+autoplot(penguin_pca) # this is just the locations in multivariate space on PC1 and PC2
+
+# for aesthetics want a dataset with the same observations that were used to create the PCA for coloring, etc.
+penguin_complete <- penguins %>% 
+  drop_na(body_mass_g, ends_with("_mm")) # don't need to worry about columns, just rows (also don't want to drop all na because this still has other columns with different NAs)
+# want all the columns because might want to color based on a factor (not a continuous thing that was used)
 
 ```
 
+```{r}
+autoplot(penguin_pca,
+         data = penguin_complete,
+         colour = "species",
+         loadings = TRUE,
+         loadings.label = TRUE) +
+  theme_minimal()
+# the data MUST match (observations/rows are exactly the same as PCA even if columns are different)
+# see Gentoos (bigger) are much bigger than Adelie and Chinstrap--explains 90% of the data!!
+# look at example code for other nice formatting ideas
+# defactoextra? factoextra? one is good for even better PCA visualizations
+
+```
+
+## Part 2: ggplot2 customization and reading in different file types
+
+```{r}
+# read in Excel file to wrangle and graph
+fish_noaa <- read_excel(here("data", "foss_landings.xlsx"))  %>% 
+  clean_names() %>% # from janitor: convert to lower snake case?
+  mutate(across(where(is.character), tolower)) %>% # convert character columns to lower case (easier to type)
+# across = across columns 1:5, or name:year, or all characters--could also do ends_with, starts_with, etc.
+  mutate(nmfs_name = str_sub(nmfs_name, end = -4)) %>% # get rid of asteriks and spaces (last 4 characters)
+# str_sub
+  filter(confidentiality == "public")
+  # only keep observations that are public
+
+```
+
+Make a customized graph:
+
+```{r}
+fish_plot <- ggplot(data = fish_noaa,
+                    aes(x = year, y = pounds)) + 
+  geom_line(aes(color = nmfs_name), show.legend = FALSE) + 
+  theme_minimal()
+
+fish_plot # so many species that only see the legend!
+```
+
+Make it interactive so can look at all of them
+```{r}
+ggplotly(fish_plot) # now can hover over different series to get info
+# can drag cursor over an area to zoom in
+# don't need to do it all the time, but is cool (interactive in knitted form also)
+
+```
+
+
+```{r}
+# this is a sphagetti plot becuase there are SO many lines on it, but sometimes want to highlight a few using gghighlight
+
+ggplot(data = fish_noaa,
+                    aes(x = year, y = pounds, group = nmfs_name)) + 
+  geom_line() + 
+  theme_minimal() +
+  gghighlight(nmfs_name == "tunas") # all other series in gray, black is one of interest
+
+# can also highlight based on values
+ggplot(data = fish_noaa,
+                    aes(x = year, y = pounds, group = nmfs_name)) + 
+  geom_line(aes(color = nmfs_name)) + 
+  theme_minimal() +
+  gghighlight(max(pounds) > 1e8) # but both in black auto so need to put color in geom_line() and gghighlight takes it away !! what an MVP
+
+```
+
+## Part 3: Read in data from a URL, use 'lubridate()' to work with dates/times, use 'mutate()' a bunch, and make a graph in logical order
+
+Wrangling using Mutate again and changing factor level to show up in a reasonable order. Data from the Monroe water treatment plant daily electricity use (copied from online) 
+
+```{r}
+# most updated version (but can change your outputs)
+# https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c87aa-af51-4008-80a9-56415c7c931e/download/mwtpdailyelectricitybclear.csv
+
+monroe_wt <- read_csv("https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c8f7aa-af51-4008-80a9-56415c7c931e/download/mwtp_dailyelectricity_bclear.csv")
+
+```
 

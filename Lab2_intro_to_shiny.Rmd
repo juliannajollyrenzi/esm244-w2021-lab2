@@ -126,9 +126,57 @@ Wrangling using Mutate again and changing factor level to show up in a reasonabl
 
 ```{r}
 # most updated version (but can change your outputs)
-# https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c87aa-af51-4008-80a9-56415c7c931e/download/mwtpdailyelectricitybclear.csv
 
-monroe_wt <- read_csv("https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c8f7aa-af51-4008-80a9-56415c7c931e/download/mwtp_dailyelectricity_bclear.csv")
+monroe_wt <- read_csv("https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c8f7aa-af51-4008-80a9-56415c7c931e/download/mwtp_dailyelectricity_bclear.csv") %>% # still a CSV, just from a URL
+  clean_names() # change column titles to lower snake case with underscores between capitalized things
+
+```
+```{r}
+# convert date to a date class, then pull month, then make a new column that has the month abbreviation, then convert month to factor where order is based on month order associated with it (logical order)
+monroe_ts <- monroe_wt %>% 
+  mutate(date = mdy(date)) %>% # lubridate form
+  mutate(record_month = month(date)) %>% 
+  mutate(month_name = month.abb[record_month]) %>% # get abbreviations
+  mutate(month_name = fct_reorder(month_name, record_month)) # set order based on factors in another variable (i.e. set month_name in the order of record_month)
+
+# see this worked:
+levels(monroe_ts$month_name)
+  
+# note:
+month.abb[4] # this is how that works
+month.name[4]
+
+# plot
+ggplot(data = monroe_ts, aes(month_name, y = total_k_wh)) +
+  geom_jitter()
 
 ```
 
+## Part 4: Compound figures with `patchwork`
+Compound figures (i.e. multiple graphs in one figure)
+
+```{r}
+graph_a <- ggplot(data = penguins, aes(x = body_mass_g, y = flipper_length_mm)) + 
+  geom_point()
+
+graph_b <- ggplot(data = penguins, aes(x = species, y = flipper_length_mm)) + 
+  geom_jitter(aes(color = species), show.legend = FALSE)
+
+graph_a
+graph_b
+
+```
+```{r}
+# Use | to put graphs side by side
+# use / to put graphs one over the other
+graph_c <- (graph_a | graph_b) / fish_plot & theme_dark()
+
+# can graphics as one with the & sign
+# can also customize titles, layout, blank spaces, labels, etc.
+# can also combine tables, etc.
+graph_c
+
+# export most recent graph
+ggsave(here("fig", "graph_c_ah.png"), width = 5, height = 6) # height/width in inches
+```
+ 
